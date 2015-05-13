@@ -863,16 +863,27 @@ int main (int argc, char **argv)
 #ifdef FUZZ
   if(daemon->client_fuzz_file)
   {
-    printf("Reading a fake packet out of %s!\n", daemon->client_fuzz_file);
+    printf("Reading a fake request packet from %s!\n", daemon->client_fuzz_file);
     struct listener fake_listener;
     memset(&fake_listener, 0, sizeof(struct listener));
 
     fake_listener.fd = 0;
-    fake_listener.family = AF_INET6;
+    fake_listener.family = AF_INET;
 
     receive_query(&fake_listener, now);
 
     printf("Done parsing the requested packet!\n");
+    exit(0);
+  }
+
+  if(daemon->server_fuzz_file)
+  {
+    printf("Reading a fake response packet from %s!\n", daemon->server_fuzz_file);
+
+    reply_query(0, AF_INET, now);
+
+    printf("Done parsing the requested packet!\n");
+
     exit(0);
   }
 #endif

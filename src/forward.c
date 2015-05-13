@@ -44,11 +44,11 @@ ssize_t my_recvmsg(int sockfd, struct msghdr *msg, int flags)
     FILE *f = fopen(daemon->client_fuzz_file, "rb");
     if(!f)
     {
-      printf("Couldn't open file!\n");
+      printf("Couldn't open file: %s\n", daemon->client_fuzz_file);
       exit(1);
     }
-    n = fread((char*)msg->msg_iov->iov_base, 1, msg->msg_iov->iov_len, f);
 
+    n = fread((char*)msg->msg_iov->iov_base, 1, msg->msg_iov->iov_len, f);
     fclose(f);
 
     /* Replace the transaction_id. */
@@ -68,6 +68,33 @@ ssize_t my_recvmsg(int sockfd, struct msghdr *msg, int flags)
 
   return n;
 }
+
+ssize_t my_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen)
+{
+  ssize_t n;
+
+  if(daemon->server_fuzz_file)
+  {
+    printf("Fuzzy!\n");
+
+    FILE *f = fopen(daemon->server_fuzz_file, "rb");
+    if(!f)
+    {
+      printf("Couldn't open file: %s\n", daemon->server_fuzz_file);
+      exit(1);
+    }
+
+    n = fread((char*)buf, 1, len, f);
+    fclose(f);
+  }
+  else
+  {
+    n = recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
+  }
+
+  return n;
+}
+
 #endif
 
 /* Send a UDP packet with its source address set as "source" 
@@ -721,7 +748,11 @@ void reply_query(int fd, int family, time_t now)
   union mysockaddr serveraddr;
   struct frec *forward;
   socklen_t addrlen = sizeof(serveraddr);
+#if FUZZ
+  ssize_t n = my_recvfrom(fd, daemon->packet, daemon->packet_buff_sz, 0, &serveraddr.sa, &addrlen);
+#else
   ssize_t n = recvfrom(fd, daemon->packet, daemon->packet_buff_sz, 0, &serveraddr.sa, &addrlen);
+#endif
   size_t nn;
   struct server *server;
   void *hash;
@@ -745,24 +776,41 @@ void reply_query(int fd, int family, time_t now)
     return;
   
   /* spoof check: answer must come from known server, */
-  for (server = daemon->servers; server; server = server->next)
-    if (!(server->flags & (SERV_LITERAL_ADDRESS | SERV_NO_ADDR)) &&
-	sockaddr_isequal(&server->addr, &serveraddr))
-      break;
-  
-  if (!server)
-    return;
-  
+#ifdef FUZZ
+  if(!daemon->server_fuzz_file)
+  {
+#endif
+    for (server = daemon->servers; server; server = server->next)
+      if (!(server->flags & (SERV_LITERAL_ADDRESS | SERV_NO_ADDR)) &&
+	  sockaddr_isequal(&server->addr, &serveraddr))
+        break;
+
+    if (!server)
+      return;
+#ifdef FUZZ
+  }
+#endif
+
 #ifdef HAVE_DNSSEC
   hash = hash_questions(header, n, daemon->namebuff);
 #else
   hash = &crc;
   crc = questions_crc(header, n, daemon->namebuff);
 #endif
-  
-  if (!(forward = lookup_frec(ntohs(header->id), hash)))
-    return;
-  
+
+#ifdef FUZZ
+  if(daemon->server_fuzz_file)
+  {
+    struct frec *my_frec = (struct frec*)malloc(sizeof(struct frec));
+    my_frec->sentto = (struct server*)malloc(sizeof(struct server));
+
+    forward = my_frec;
+  }
+  else
+#endif
+    if (!(forward = lookup_frec(ntohs(header->id), hash)))
+      return;
+
   /* log_query gets called indirectly all over the place, so 
      pass these in global variables - sorry. */
   daemon->log_display_id = forward->log_id;

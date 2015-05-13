@@ -1,0 +1,111 @@
+# These are the call paths that get you to basically every rfc1035
+# function.
+#
+# The '*' after certain functions mean that it's expanded elsewhere.
+
+extract_name
+  reply_query
+
+in_arpa_name_2_addr
+  answer_auth
+    receive_query
+
+skip_name
+  sort_rrset
+    validate_rrset
+      dnssec_validate_by_ds
+        tcp_key_recurse
+          tcp_check_for_unsigned_zone
+          tcp_request
+      dnssec_validate_reply
+        ?
+      dnssec_chase_cname
+        ?
+  dnssec_validate_ds
+    ?
+  find_nsec_records
+    ?
+  prove_non_existence_nsec3
+    ?
+  check_rrs
+    ?
+  filter_rrsigs
+    ?
+
+skip_questions
+  answer_auth*
+  dnssec_validate_by_ds*
+
+skip_section
+  dnssec_validate_ds*
+  find_nsec_records*
+
+questions_crc
+  forward_query
+    reply_query*
+    receive_query*
+  reply_query*
+  tcp_request*
+
+resize_packet
+  process_reply
+    reply_query*
+    tcp_request*
+  reply_query*
+
+find_pseudoheader
+  process_reply*
+  reply_query*
+
+add_mac
+  forward_query*
+  tcp_request*
+
+add_source_addr
+  forward_query*
+  tcp_request*
+
+add_do_bit
+  dnssec_generate_query
+    reply_query*
+    tcp_check_for_unsigned_zones
+      tcp_key_recurse
+    tcp_key_recurse
+  forward_query*
+  tcp_request
+
+check_source
+  process_reply*
+
+private_net
+  warn_bound_listeners
+    main
+
+extract_addresses
+  process_reply*
+
+extract_request
+  forward_query*
+  process_reply*
+  receive_query*
+  tcp_request*
+
+setup_reply
+  forward_query*
+  tcp_request*
+
+check_for_local_domain*
+  search_servers*
+    forward_query*
+    tcp_request*
+  process_reply*
+
+check_for_bogus_wildcard
+  process_reply*
+
+add_resource_record
+  answer_auth*
+
+answer_request
+  tcp_request*
+  receive_query*

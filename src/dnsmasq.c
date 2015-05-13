@@ -859,7 +859,24 @@ int main (int argc, char **argv)
   /* Using inotify, have to select a resolv file at startup */
   poll_resolv(1, 0, now);
 #endif
-  
+
+#ifdef FUZZ
+  if(daemon->client_fuzz_file)
+  {
+    printf("Reading a fake packet out of %s!\n", daemon->client_fuzz_file);
+    struct listener fake_listener;
+    memset(&fake_listener, 0, sizeof(struct listener));
+
+    fake_listener.fd = 0;
+    fake_listener.family = AF_INET6;
+
+    receive_query(&fake_listener, now);
+
+    printf("Done parsing the requested packet!\n");
+    exit(0);
+  }
+#endif
+
   while (1)
     {
       int maxfd = -1;

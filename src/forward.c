@@ -31,6 +31,44 @@ static int send_check_sign(struct frec *forward, time_t now, struct dns_header *
 			   char *name, char *keyname);
 #endif
 
+#ifdef FUZZ
+ssize_t my_recvmsg(int sockfd, struct msghdr *msg, int flags)
+{
+  ssize_t n;
+  ssize_t i;
+  char a, b;
+
+  if(daemon->client_fuzz_file)
+  {
+    printf("Fuzzy!\n");
+    FILE *f = fopen(daemon->client_fuzz_file, "rb");
+    if(!f)
+    {
+      printf("Couldn't open file!\n");
+      exit(1);
+    }
+    n = fread((char*)msg->msg_iov->iov_base, 1, msg->msg_iov->iov_len, f);
+
+    fclose(f);
+
+    /* Replace the transaction_id. */
+    ((char*)msg->msg_iov->iov_base)[0] = a;
+    ((char*)msg->msg_iov->iov_base)[1] = b;
+
+    memcpy(msg->msg_name, "\x0a\x00\x41\x41\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00", 28);
+    msg->msg_namelen    = 28;
+    memcpy(msg->msg_control, "\x24\x00\x00\x00\x00\x00\x00\x00\x29\x00\x00\x00\x32\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00\x00", 40);
+    msg->msg_controllen = 40;
+    msg->msg_flags      = 0;
+  }
+  else
+  {
+    n = recvmsg(sockfd, msg, flags);
+  }
+
+  return n;
+}
+#endif
 
 /* Send a UDP packet with its source address set as "source" 
    unless nowild is true, when we just send it with the kernel default */
@@ -1125,10 +1163,15 @@ void receive_query(struct listener *listen, time_t now)
   msg.msg_namelen = sizeof(source_addr);
   msg.msg_iov = iov;
   msg.msg_iovlen = 1;
-  
+
+#ifdef FUZZ
+  if ((n = my_recvmsg(listen->fd, &msg, 0)) == -1)
+    return;
+#else
   if ((n = recvmsg(listen->fd, &msg, 0)) == -1)
     return;
-  
+#endif
+
   if (n < (int)sizeof(struct dns_header) || 
       (msg.msg_flags & MSG_TRUNC) ||
       (header->hb3 & HB3_QR))
@@ -1188,8 +1231,12 @@ void receive_query(struct listener *listen, time_t now)
 	  return;
 	}
     }
-		
+
+#ifdef FUZZ
+  if (check_dst && daemon->client_fuzz_file == 0)
+#else
   if (check_dst)
+#endif
     {
       struct ifreq ifr;
 

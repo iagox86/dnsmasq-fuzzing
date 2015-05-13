@@ -154,6 +154,11 @@ struct myoption {
 #define LOPT_HOST_INOTIFY  342
 #define LOPT_DNSSEC_STAMP  343
 #define LOPT_TFTP_NO_FAIL  344
+#ifdef FUZZ
+#define LOPT_FUZZ_CLIENT   345
+#define LOPT_FUZZ_SERVER   346
+#define LOPT_RANDOM_PORT   347
+#endif
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option opts[] =  
@@ -313,6 +318,11 @@ static const struct myoption opts[] =
     { "quiet-dhcp6", 0, 0, LOPT_QUIET_DHCP6 },
     { "quiet-ra", 0, 0, LOPT_QUIET_RA },
     { "dns-loop-detect", 0, 0, LOPT_LOOP_DETECT },
+#ifdef FUZZ
+    { "client-fuzz", 1, 0, LOPT_FUZZ_CLIENT },
+    { "server-fuzz", 1, 0, LOPT_FUZZ_SERVER },
+    { "randomize-port", 0, 0, LOPT_RANDOM_PORT },
+#endif
     { NULL, 0, 0, 0 }
   };
 
@@ -479,6 +489,11 @@ static struct {
   { LOPT_LOCAL_SERVICE, OPT_LOCAL_SERVICE, NULL, gettext_noop("Accept queries only from directly-connected networks"), NULL },
   { LOPT_LOOP_DETECT, OPT_LOOP_DETECT, NULL, gettext_noop("Detect and remove DNS forwarding loops"), NULL },
   { LOPT_IGNORE_ADDR, ARG_DUP, "<ipaddr>", gettext_noop("Ignore DNS responses containing ipaddr."), NULL }, 
+#ifdef FUZZ
+  { LOPT_FUZZ_CLIENT, ARG_DUP, "<filename>", gettext_noop("Read DNS requests from the given file instead of the network."), NULL },
+  { LOPT_FUZZ_SERVER, ARG_DUP, "<filename>", gettext_noop("Read DNS responses from the given file instead of the network."), NULL },
+  { LOPT_RANDOM_PORT, ARG_DUP, NULL, gettext_noop("Randomize the listen port (useful for fuzzing)"), NULL },
+#endif
   { 0, 0, NULL, NULL, NULL }
 }; 
 
@@ -3927,6 +3942,24 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 	
 	break;
       }
+#endif
+
+#if FUZZ
+    case LOPT_FUZZ_CLIENT: /* --client-fuzz */
+      daemon->client_fuzz_file = optarg;
+      break;
+
+    case LOPT_FUZZ_SERVER: /* --server-fuzz */
+      daemon->server_fuzz_file = optarg;
+      break;
+
+    case LOPT_RANDOM_PORT: /* --randomize-port  */
+      do
+      {
+        daemon->port = rand16();
+      } while(daemon->port < 1024);
+      printf("dns port randomly set to %d\n", daemon->port);
+      break;
 #endif
 		
     default:

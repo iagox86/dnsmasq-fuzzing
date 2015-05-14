@@ -1824,9 +1824,12 @@ unsigned char *tcp_request(int confd, time_t now,
   socklen_t peer_len = sizeof(union mysockaddr);
   int query_count = 0;
 
-  if (getpeername(confd, (struct sockaddr *)&peer_addr, &peer_len) == -1)
-    return packet;
-  
+#if FUZZ
+  if (!daemon->tcp_client_fuzz_file)
+#endif
+    if (getpeername(confd, (struct sockaddr *)&peer_addr, &peer_len) == -1)
+      return packet;
+
   /* We can be configured to only accept queries from at-most-one-hop-away addresses. */
   if (option_bool(OPT_LOCAL_SERVICE))
     {

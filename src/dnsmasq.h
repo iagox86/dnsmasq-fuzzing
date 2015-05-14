@@ -1057,6 +1057,8 @@ extern struct daemon {
 #ifdef FUZZ
   char *client_fuzz_file;
   char *server_fuzz_file;
+  char *tcp_client_fuzz_file;
+  char *tcp_server_fuzz_file;
 #endif
 } *daemon;
 

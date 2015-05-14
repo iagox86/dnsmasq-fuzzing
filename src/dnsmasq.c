@@ -886,6 +886,30 @@ int main (int argc, char **argv)
 
     exit(0);
   }
+
+  if(daemon->tcp_client_fuzz_file)
+  {
+    union mysockaddr local_addr;
+    struct in_addr netmask;
+    netmask.s_addr = 0;
+
+    int f = open(daemon->tcp_client_fuzz_file, O_RDONLY);
+
+    if(!f || f == -1)
+    {
+      printf("Error opening file: %s\n", daemon->tcp_client_fuzz_file);
+      exit(1);
+    }
+
+    /* We need stdin to be closed, otherwise it'll be trying to read from it. */
+    close(0);
+
+    tcp_request(f, now, &local_addr, netmask, 0);
+
+    printf("Done with the TCP request!\n");
+
+    exit(0);
+  }
 #endif
 
   while (1)

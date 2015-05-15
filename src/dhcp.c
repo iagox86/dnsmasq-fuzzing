@@ -216,9 +216,18 @@ void dhcp_packet(time_t now, int pxe_fd)
 	  iface_index = *(p.i);
 	}
 #endif
-	
+
+#if FUZZ
+  if (daemon->dhcp_fuzz_file)
+  {
+    iface_index = 0;
+    strcpy(ifr.ifr_name, "lo");
+  }
+  else
+#else
   if (!indextoname(daemon->dhcpfd, iface_index, ifr.ifr_name))
     return;
+#endif
 
 #ifdef HAVE_LINUX_NETWORK
   /* ARP fiddling uses original interface even if we pretend to use a different one. */

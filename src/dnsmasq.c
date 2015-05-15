@@ -910,6 +910,21 @@ int main (int argc, char **argv)
 
     exit(0);
   }
+
+  if(daemon->tftp_fuzz_file)
+  {
+    printf("Reading a fake TFTP packet from %s!\n", daemon->tftp_fuzz_file);
+    struct listener fake_listener;
+    memset(&fake_listener, 0, sizeof(struct listener));
+
+    fake_listener.fd = 0;
+    fake_listener.family = AF_INET;
+
+    tftp_request(&fake_listener, now);
+
+    printf("Done parsing the requested TFTP packet!\n");
+    exit(0);
+  }
 #endif
 
   while (1)

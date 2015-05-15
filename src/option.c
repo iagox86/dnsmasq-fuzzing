@@ -160,6 +160,9 @@ struct myoption {
 #define LOPT_RANDOM_PORT   347
 #define LOPT_TCP_FUZZ_CLIENT 348
 #define LOPT_TCP_FUZZ_SERVER 349
+#define LOPT_TFTP_FUZZ     350
+#define LOPT_DHCP_FUZZ     351
+#define LOPT_DHCP6_FUZZ    352
 #endif
 
 #ifdef HAVE_GETOPT_LONG
@@ -326,6 +329,9 @@ static const struct myoption opts[] =
     { "randomize-port", 0, 0, LOPT_RANDOM_PORT },
     { "tcp-client-fuzz", 1, 0, LOPT_TCP_FUZZ_CLIENT },
     { "tcp-server-fuzz", 1, 0, LOPT_TCP_FUZZ_SERVER },
+    { "tftp-fuzz", 1, 0, LOPT_TFTP_FUZZ },
+    { "dhcp-fuzz", 1, 0, LOPT_DHCP_FUZZ },
+    { "dhcp6-fuzz", 1, 0, LOPT_DHCP6_FUZZ },
 #endif
     { NULL, 0, 0, 0 }
   };
@@ -499,6 +505,9 @@ static struct {
   { LOPT_RANDOM_PORT, ARG_DUP, NULL, gettext_noop("Randomize the listen port (useful for fuzzing)"), NULL },
   { LOPT_TCP_FUZZ_CLIENT, ARG_DUP, "<filename>", gettext_noop("Read TCP DNS requests from the given file instead of the network."), NULL },
   { LOPT_TCP_FUZZ_SERVER, ARG_DUP, "<filename>", gettext_noop("Read TCP DNS responses from the given file instead of the network."), NULL },
+  { LOPT_TFTP_FUZZ, ARG_DUP, "<filename>", gettext_noop("Read and parses a TFTP packet from a file instead of the network."), NULL },
+  { LOPT_DHCP_FUZZ, ARG_DUP, "<filename>", gettext_noop("Read and parses a DHCP packet from a file instead of the network."), NULL },
+  { LOPT_DHCP6_FUZZ, ARG_DUP, "<filename>", gettext_noop("Read and parses a DHCPv6 packet from a file instead of the network."), NULL },
 #endif
   { 0, 0, NULL, NULL, NULL }
 }; 
@@ -3967,6 +3976,17 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
       daemon->tcp_server_fuzz_file = optarg;
       break;
 
+    case LOPT_TFTP_FUZZ:
+      daemon->tftp_fuzz_file = optarg;
+      break;
+
+    case LOPT_DHCP_FUZZ:
+      daemon->dhcp_fuzz_file = optarg;
+      break;
+
+    case LOPT_DHCP6_FUZZ:
+      daemon->dhcp6_fuzz_file = optarg;
+      break;
 
     case LOPT_RANDOM_PORT: /* --randomize-port  */
       do

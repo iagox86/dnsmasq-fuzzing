@@ -15,7 +15,11 @@
 */
 
 #define NAMESERVER_PORT 53
+#if FUZZ
+#define TFTP_PORT       6969
+#else
 #define TFTP_PORT       69
+#endif
 
 #define IN6ADDRSZ       16
 #define INADDRSZ        4

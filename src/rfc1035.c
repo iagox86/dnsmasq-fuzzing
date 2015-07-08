@@ -138,8 +138,6 @@ int extract_name(struct dns_header *header, size_t plen, unsigned char **pp,
 	    }
 	  cp += sprintf((char *)cp, "/%d]", count);
 	  /* do this here to overwrite the zero char from sprintf */
-
-          namelen++;
 	  *cp++ = '.';
 	}
       else
@@ -204,10 +202,7 @@ int extract_name(struct dns_header *header, size_t plen, unsigned char **pp,
 	      }
 	
 	  if (isExtract)
-          {
-            namelen++;
 	    *cp++ = '.';
-          }
 	  else if (*cp != 0 && *cp++ != '.')
 	    retvalue = 2;
 	}
